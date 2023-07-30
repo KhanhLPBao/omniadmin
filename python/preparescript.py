@@ -1,6 +1,7 @@
 import json as j
 import sys
 import os 
+import glob
 
 maindir = "~/Program/maindir/maindir.txt"
 with open(maindir).read() as maindir:
@@ -20,5 +21,23 @@ with open('server_list.json') as s:
     s.close()
 del s
 
-def writescript():
-    
+def writescript(session):
+    prog_file = f'{storagedir}/method/{session}/programs.prog'
+    session_prog = [r.rstrip() for r in \
+                    open(prog_file).readlines()]
+    session_samples = [r.rstrip() for r in \
+                       open(f'{signaldir}/{session}/{session}.contents').readlines() \
+                       if 'prefix' not in r]
+
+    for prior in priority_prog:
+        server_prog = priority_prog[prior]
+        if server_prog in session_prog:
+            clustername = serverlist[server_prog]
+            clusterinput = f'{signaldir}/{clustername}/in'
+            count = len(glob.glob(f'{clusterinput}/*.txt'))
+            count += 1
+            with open(f'{clusterinput}/{count}_{session}.txt','w') as i:
+                i.write('\n'.join(session_samples))
+                i.close()
+            
+writescript(sessionid)
