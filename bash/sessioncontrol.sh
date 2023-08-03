@@ -9,6 +9,7 @@ statusdir=$storagedir"/status"
 scriptdir="~/Programs/scripts/admin/python/"
 workingdir=$signaldir"/working/"
 processir=$signaldir"/processing"
+donedir=$storagedir"/done"
 
 session_working="session/working.l"
 session_done="session/done"
@@ -39,9 +40,10 @@ checksession(){
             c)          #Completed
                 python $scriptdir"/sessioncheck.py done " $a
                 ss=( "${ss[@]}/$a" )
-                workdate=$( date "+%d/%m/%y" )
+                workdate=$( date "+%y/%m/%d" )
                 worktime=$( date "+%H:%M:%S" )
                 echo $a"-"$worktime >> $session_done"/"$workdate".l"
+                mv -f $signaldir"/working/"$1".*" $donedir
             ;;
             *)
                 pass
@@ -52,10 +54,12 @@ checksession(){
 
 while 0
 do
-    for file in $processir
+    for file in $processir"/*"
     do
-        session=`echo $( basename $file ) | cut -d "_" -f 3`
-        checksession $session
+        if [ $file != $processir"/*" ]
+        then
+            session=`echo $( basename $file ) | cut -d "_" -f 3`
+            checksession $session
     done
     sleep 2m
 done

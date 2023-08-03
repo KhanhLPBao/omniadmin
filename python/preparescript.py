@@ -22,11 +22,12 @@ with open('server_list.json') as s:
 del s
 
 def writescript(session):
-    prog_file = f'{storagedir}/method/{session}/programs.prog'
+    prog_file = f'{signaldir}/working/{session}.request'
     session_prog = [r.rstrip() for r in \
                     open(prog_file).readlines()]
+    session_prog = server_prog[3].split(' ')
     session_samples = [r.rstrip() for r in \
-                       open(f'{signaldir}/{session}/{session}.contents').readlines() \
+                       open(f'{signaldir}/working/{session}.contents').readlines() \
                        if 'prefix' not in r]
 
     for prior in priority_prog:

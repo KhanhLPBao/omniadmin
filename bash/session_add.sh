@@ -14,7 +14,7 @@ do
     do
         if [ "$( basename $request )" != "*.request" ]
         then
-            workdate=$( date "+%d/%m/%y" )
+            workdate=$( date "+%y/%m/%d" )
             worktime=$( date "+%H:%M:%S" )
             account=$( basename $request | cut -d "." -f 1 | cut -d "-" -f 2 )
             normalcount=$( ls $signaldir"/queqe/normal" | wc -l ) 
