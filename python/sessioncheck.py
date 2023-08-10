@@ -1,3 +1,4 @@
+#!/usr/bin/python3.10
 import sys
 signaldir = ''
 storagedir = ''
@@ -6,12 +7,11 @@ command = sys.argv[1]
 session = sys.argv[2]
 import json
 import os
-import popen as p
+import subprocess as p
 def scansession():
     #Get all jobs listed on the session
-    with open(f'{progressdir}/{session}/{session}.jobs'),\
-        open({progressdir}/{session}/filenames.files)\
-        as j and f:
+    with open(f'{progressdir}/{session}/{session}.jobs') as j, \
+        open(f'{progressdir}/{session}/filenames.files') as f:
         totaljobs = j.read()
         totalfiles = [r.rstrip() for r in f.readlines()[1:]]
         progress={}
