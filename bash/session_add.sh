@@ -1,6 +1,6 @@
 #!/bin/bash
-signaldir="media/signal"
-storagedir="media/storage"
+signaldir=$1
+storagedir=$2
 logdir="log/session"
 linkdir=$storagedir"/link"
 ###################################3
@@ -8,41 +8,48 @@ linkdir=$storagedir"/link"
 # .request contain session id and priority status
 # .contents contain filename and method to get it
 
-while 0:
+while   :
 do
-    for request in $signaldir"/request/*.request"
+    requests=( $signaldir"/request/*.request" )
+    for request in ${requests[@]}
     do
         if [ "$( basename $request )" != "*.request" ]
         then
-            workdate=$( date "+%y/%m/%d" )
+            echo $request
+
+            workdate=$( date "+%y-%m-%d" )
             worktime=$( date "+%H:%M:%S" )
             account=$( basename $request | cut -d "." -f 1 | cut -d "-" -f 2 )
             normalcount=$( ls $signaldir"/queqe/normal" | wc -l ) 
-            prioritycount=$( ls $signaldir"/queqe/priority" | wc -l )     
+            prioritycount=$( ls $signaldir"/queqe/high" | wc -l )     
             queqebefore=$(( $normalcount + $prioritycount ))
             content=`cat $request`
-            session=`cut -d " " -f 1 $content`
-            prio=`cut -d " " -f 2 $content`
+
+            session=$( echo $content | cut -d " " -f 1  )
+            prio=$( echo $content | cut -d " " -f 2 )
+
             case $prio in
                 0)
                     priority="normal"
-                    session_queqe=$(( $( cat $signaldir"/queqe/normal/number" ) + 1 ))
-                    echo $session_queqe > $signaldir"/queqe/normal/number"
                 ;;
                 1)
                     priority="high"
-                    session_queqe=$(( $( cat $signaldir"/queqe/priority/number" ) + 1 ))
-                    echo $session_queqe > $signaldir"/queqe/priority"/number
                 ;;
             esac
+            session_dir="$signaldir/queqe/$priority"
+            session_queqe=$(( $( ls -l $session_dir | grep ^- | wc -l ) + 1 ))
+            echo $session_queqe > "$signaldir/queqe/$priority/number" 
         #LOG
-            echo $worktime" - Account $account request session $session as $priority priority, \
+            echo $worktime" - Account $account request session $session as $priority priority, 
             number of Session(s) need to reprocess before this: $queqebefore ))" \
-            > $logdir"/"$workdate"_add.adminlog"
+            >> $logdir"/"$workdate"_add.adminlog"
         #END LOG   
-            mv -f $request $signaldir"/queqe/"$priority"/"$session_queqe"_"$session".request"
-            mkdir $storagedir"/storage/"$session
-            mv -f $signaldir"/request/"$session.contents $storagedir"/storage/"$session"/filenames.files"
+            mv -f "$request" $signaldir"/queqe/"$priority"/"$session_queqe"_"$session".request"
+            if [ ! -d "$storagedir/storage/$session" ]
+            then
+                mkdir "$storagedir/storage/$session"
+            fi
+            mv -f $signaldir"/request/"$session".contents" $storagedir"/storage/"$session"/filenames.files"
         fi
     done
     sleep 1m

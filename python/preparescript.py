@@ -33,8 +33,7 @@ def writescript(session):
     for prior in priority_prog:
         server_prog = priority_prog[prior]
         if server_prog in session_prog:
-            clustername = serverlist[server_prog]
-            clusterinput = f'{signaldir}/{clustername}/in'
+            clusterinput = f'{signaldir}/{server_prog}/{session}/in'
             count = len(glob.glob(f'{clusterinput}/*.txt'))
             count += 1
             with open(f'{clusterinput}/{count}_{session}.txt','w') as i:
