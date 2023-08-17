@@ -3,44 +3,46 @@ signaldir="media/signal"
 storagedir="media/storage"
 logdir="log/control"
 storageserver=""    #directory to shared storage server
-tempstorage=$storagedir"/tempstorage/"
+tempstorage=$storagedir"/sessioncache"
 donedir=$storagedir"/done"
-
-storage_add(){
-    processdate=$( date "+%y-%m-%d" )
-    if [ $(ls -l $donedir"/*" | wc -l ) -gt 0 ]
-    then
-        for file in $tempstorage"/*"
-        do
-            filename=$( basename $file )
-            suffix=$( echo $filename | cut -d "." -f 2 )
-            case $suffix in
-                request)
-                    mv -f $file $storagedir"/history/request/"$processdate"_"$filename
-                ;;
-                contents)
-                    mv -f $file $storagedir"/history/contents/"$processdate"_"$filename
-                ;;
-                *)
-                    mv -f $file $storagedir"/tmpstorage/"$processdate"_"$filename
-                ;;
-            esac
-    fi
-}
 
 storage_move(){
     processdate=$( date "+%y-%m-%d" )
     worktime=$( date "+%H:%M:%S" )
     processdate_s=$( date -d $processdate "+%s" )
-    for file in $storagedir"/tmpstorage/*"
+    for session in $tempstorage"/*"
     do
-        $filename=$( basename $file )
-        insertday=$( date -d $( echo $filename | cut -d "-" -f 1 ) "+%s" )
-        datediff=$(( $processdate_s - $insertday ))
+        if [ -d $session ]
+        then
+            sessionid=$( basename $file )
+            insertday=$( date -d $( echo $sessionid | cut -d "_" -f 2 ) "+%s" )
+            datediff=$(( $processdate_s - $insertday ))
+        fi
+
         if [ $datediff -gt 259200 ]
         then
             echo $processdate"_"$worktime" - Move $file to storage cluster" > $logdir
-            echo $file >> $signaldir"/tonas/"$processdate
+            echo $session >> $signaldir"/nas/request/movefile/"$session
         fi
     done
 }
+
+cache_add(){
+    for file in $signaldir"/done/*.request"
+    do
+        if [ -f $file ]
+        then
+            sessionid=$( basename $file )
+            if [ -d $storangedir"/processing/"$sessionid ]
+            then
+                mv -f $storangedir"/processing/"$sessionid $tempstorage
+                mv -f $signaldir"/done/"$sessionid".*" $tempstorage"/"$sessionid
+            fi
+        fi
+}
+
+while :
+do
+    cache_add
+    storage_move
+done

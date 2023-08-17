@@ -3,18 +3,19 @@ signaldir="media/signal"
 storagedir="media/storage"
 logdir="log/processing"
 linkdir=$storagedir"/link"
-workingdir=$signaldir"/working/"
+workingdir=$signaldir"/working"
 processdir=$signaldir"/processing"
 sessiondir=$signaldir"/sessions"
 errordir=$storagedir"/error"
 statusdir=$storagedir"/status"
+donedir=$signaldir"/done"
 while :
 do
     workdate=$( date "+%d/%m/%y" )
     worktime=$( date "+%H:%M:%S" )
 
-    if [ $(ls $processdir | wc -l ) -gt 0 ] && \
-    [ (ls $workingdir | wc -l ) -eq 0 ]
+    if [ $( ls $processdir | wc -l ) -gt 0 ] && \
+    [ $( ls $workingdir | wc -l ) -eq 0 ]
     then
         nextfile=$( ls $processdir"/*.request" | cut -d " " -f 1 )
         filename=`basename $nextfile | cut -d "." -f 2`
@@ -87,6 +88,23 @@ do
             echo "S0" > $statusdir"/"$sessionid".sessionstatus" #S0 Error: No content file
             mv -f $nextfile $errordir"/"
         fi
+    else
+        for file in $workingdir"/*.request"
+        do
+            sessionid=$( basename $file | cut -d "." -f 1 )
+            if [ -d $storagedir"/tempstorage/"$sessionid ]
+            then
+                p=$( python $scriptdir"/progress_manager.py" )
+                case $p in
+                    1)
+                        echo "$worktime - Session $sessionid finished, beginning to move session to cache" >> $logdir"/"$workdate".adminlog"
+                        cp -f $workingdir"/"$sessionid".contents" $signaldir"/conclusion"
+                        mv -f $workingdir"/"$sessionid".*" $donedir                       
+                    ;;
+                esac
+            fi
+        done
+
     fi
     sleep 1m
 done

@@ -4,7 +4,8 @@ signaldir="media/signal"
 storagedir="media/storage"
 logdir=$admindir"/log/processing"
 linkdir=$storagedir"/link"
-workingdir=$signaldir"/working/"
+workingdir=$signaldir"/working"
+donedir=$signaldir"/done"
 processdir=$signaldir"/processing"
 sessiondir=$signaldir"/sessions"
 errordir=$storagedir"/error"
@@ -14,28 +15,24 @@ while :
 do
     #<code>
         #<IF>
-    if [ $( ls -l $workingdir"/*" | wc -l ) -eq 1 ]
+    if [ $( ls -l $workingdir"/*" | wc -l ) -gt 1 ]
     then
-        for file in $workingdir"/*"
+        for file in $workingdir"/*.contents"
         do
             #<IF>
-            if [ "$file" != $workingdir"/*" ]
+            if [ -f $file ]
             then
                 filename=`basename $file`
                 sessionid=$( echo $filename | cut -d "." -f 1 )
-                prog_check=$( python $scriptdir"/checksession.py" \
+                prog_check=$( python $scriptdir"/session_new.py" \
                     $sessionid )
-                case $prog_check in
-                    0)
-                        pass
-                    ;;
-                    *)  #ERROR
-                        pass
-                    ;;
-                esac
+                if [ $prog_check -eq 1 ]
+                then
+                    python $scriptdir"/preparescript.py"
+
+                fi
             fi
-            #</IF>
-            python $scriptdir"/preparescripts.py" $sessionid
+            #</IF>        
         done
     fi
         #{/IF}
