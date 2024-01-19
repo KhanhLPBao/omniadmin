@@ -4,9 +4,6 @@ import sys
 from addon.blockengine import requestblock, responseblock
 from addon.codeengine import decode, account
 import os
-#loginrequest:
-#[token]|[ID]|[pass - in encoded form]
-################
 packagedir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(packagedir)
 
@@ -49,15 +46,15 @@ class login:
         self.matrix = matrix
         self.file = f'{file}.login'
         self.block_component = requestblock(f'{serverin}/{self.file}').block_export()
-        self.rqacc, self.accpwd = self.decryptacc(self.block_component[1:3],'2')
-        if os.path.isdir(f'{account_storage}/{self.rqacc[0]}.account'):
+        self.rqacc, self.accpwd = self.decryptacc([x[0] for x in self.block_component[1:3]],'2')
+        if os.path.isfile(f'{account_storage}/{self.rqacc}.account'):
             comparepwd = self.compare_pwd()
             if comparepwd:
-                result([self.rqacc[0],'accept',''])
+                result(self.rqacc,'accept','')
             else:
-                result([self.rqacc[0],'reject','Login mismatch'])
+                result(self.rqacc,'reject','Login mismatch')
         else:
-            result([self.rqacc[0],'reject','Login mismatch'])
+            result(self.rqacc,'reject','No files found')
     def decryptacc(self,acc_info,rqtype):
         def decrypt_admin(_encryptedstr,rqtype):
             if type(_encryptedstr) is list:
@@ -70,26 +67,11 @@ class login:
             match rqtype:
                 case '1':
                     decode_block = decode(0).codeblockextract(encryptedstr)
-                    return decode(0).decode(decode_block[0],decode_block[1])
+                    return decode(0).decode(decode_block['seed'],decode_block['block'])
                 case '2':
                     encrypted_block = [encryptedstr[i:i+4] for i in range(0,len(encryptedstr),4)]
-                    out = decode(0).decode(self.matrix,encrypted_block)[0]
-                    for e in range(len(encrypted_block)):
-                        try:
-                            combi0 = decode(0).decode(self.matrix,[encrypted_block[e]])
-                            if e != len(encrypted_block) - 1:
-                                combi1 = decode(0).decode(self.matrix,[encrypted_block[e+1]])
-                                if combi0[1] == combi1[0]:
-                                    out += combi0[1]
-                                else:
-                                    out += f'<MISSMATCH at pos {e+1}'
-                            else:
-                                return out
-                        except KeyError:
-                            if e != len(encrypted_block) - 1:
-                                out += f'<MISSMATCH at pos {e+1}'
-                            else:
-                                return out
+                    out = decode(0).decode(self.matrix,encrypted_block)
+                    return out
         if type(acc_info) is list:
             return [decrypt_admin(line,rqtype) for line in acc_info]
         else:
@@ -107,47 +89,44 @@ class login:
         #3: config        |                      |
         ==================+======================+
         """    
-        libacc = account(self.rqacc[0]).accountextract()
+        libacc = account(self.rqacc,1).accountextract()
         libsalt,libpwd,libconfig = self.decryptacc(libacc,'1')
-        h = black2b(salt = libsalt)
-        h.update(bytes(self.accpwd[0],'utf-8'))
+        h = blake2b(salt = bytes(libsalt,'utf-8'))
+        h.update(bytes(self.accpwd,'utf-8'))
         sleep(uniform(0.2,1))
         compare = libpwd == h.hexdigest()
         return compare
 class result:
-    def __init__(self,account,response,other):
-        from loginresponse import response
+    def __init__(self,account,r_response,other):
         self.account = account
         self.other = other
-        self.response = response
-        match response:
+        self.response = r_response
+        print(self.response)
+        match self.response:
             case 'reject':
                 self.reject()
             case 'accept':
+                print('Accept login')
                 self.accept()
     def reject(self):
+        from loginresponse import response
         reject_log = self.other
-        self.response(session,[self.account,1,self.other])
+        response(session,[self.account,1,self.other])
     def accept(self):
-        self.response(session,[self.account,1,'0'])
+        from loginresponse import response
+        response(session,[self.account,1,'0'])
 
 if __name__ == '__main__':
     from time import sleep
-    print('Begin login comparison')
     request = sys.argv[2]
     session = sys.argv[1]
-    print(request,session)    
     seq = f'{serverin}/{session}.seq'
     while True:
         if os.path.isfile(seq):
-            print('Found seq file')
             with open(seq) as seqfile:
                 matrix = [_a for _b in seqfile.readlines() for _a in _b.rstrip().split('\t')]
-                #print('login.py - matrix is\n',matrix)
-                #os.remove(seq)
                 break
         else:
-            print('No Seq file found, sleeping...')
             sleep(1)
     
     match request:
